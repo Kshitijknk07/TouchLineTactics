@@ -4,6 +4,10 @@ import (
 	"github.com/yourusername/TouchlineTactics/internal/storage"
 )
 
+// Event: "bidHistory"
+// Broadcasts after every bid and when a new player is up for auction.
+// Payload: { "position": string, "player": Player, "bids": [ { userId, amount, timestamp } ] }
+
 type StartAuctionPayload struct {
 	RoomID     string `json:"roomId"`
 	NumPlayers int    `json:"numPlayers"`

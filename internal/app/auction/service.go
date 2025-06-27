@@ -14,6 +14,12 @@ type PositionAuction struct {
 	Index    int
 }
 
+type Bid struct {
+	UserID    string    `json:"userId"`
+	Amount    int       `json:"amount"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
 type AuctionState struct {
 	Positions     []PositionAuction
 	CurrentPos    int
@@ -21,6 +27,7 @@ type AuctionState struct {
 	CurrentBidder string
 	Timer         *time.Timer
 	Mutex         sync.Mutex
+	BidHistory    []Bid // Bid history for the current player
 }
 
 type AuctionService struct {
@@ -84,6 +91,7 @@ func (a *AuctionService) broadcastNextPlayer(roomID string) {
 	player := posAuction.Players[posAuction.Index]
 	state.CurrentBid = 0
 	state.CurrentBidder = ""
+	state.BidHistory = nil // Reset bid history for new player
 	if state.Timer != nil {
 		state.Timer.Stop()
 	}
@@ -95,6 +103,12 @@ func (a *AuctionService) broadcastNextPlayer(roomID string) {
 		"position": posAuction.Position,
 		"player":   player,
 	})
+	// Broadcast empty bid history for new player
+	a.Broadcast(roomID, "bidHistory", map[string]interface{}{
+		"position": posAuction.Position,
+		"player":   player,
+		"bids":     []Bid{},
+	})
 }
 
 func (a *AuctionService) PlaceBid(roomID, userID string, bid int) bool {
@@ -104,6 +118,20 @@ func (a *AuctionService) PlaceBid(roomID, userID string, bid int) bool {
 	if bid > state.CurrentBid {
 		state.CurrentBid = bid
 		state.CurrentBidder = userID
+		// Append to bid history
+		state.BidHistory = append(state.BidHistory, Bid{
+			UserID:    userID,
+			Amount:    bid,
+			Timestamp: time.Now(),
+		})
+		// Broadcast updated bid history
+		posAuction := &state.Positions[state.CurrentPos]
+		player := posAuction.Players[posAuction.Index]
+		a.Broadcast(roomID, "bidHistory", map[string]interface{}{
+			"position": posAuction.Position,
+			"player":   player,
+			"bids":     state.BidHistory,
+		})
 		return true
 	}
 	return false
