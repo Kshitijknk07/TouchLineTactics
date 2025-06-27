@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/yourusername/TouchlineTactics/internal/app/auction"
 	"github.com/yourusername/TouchlineTactics/internal/domain"
 )
 
@@ -80,9 +81,10 @@ type Store interface {
 }
 
 type RoomEventHandler struct {
-	Store       Store
-	RoomService *RoomService
-	Broadcast   func(roomID string, eventType EventType, data interface{})
+	Store          Store
+	RoomService    *RoomService
+	Broadcast      func(roomID string, eventType EventType, data interface{})
+	AuctionHandler *auction.AuctionEventHandler
 }
 
 // Method signatures for event handling

@@ -100,3 +100,9 @@ func (s *RedisStore) ListRooms() []*domain.Room {
 	}
 	return rooms
 }
+
+func (s *RedisStore) AddPlayerToTeam(roomID, userID string, player domain.Player) error {
+	b, _ := json.Marshal(player)
+	key := "team:" + roomID + ":" + userID
+	return s.Client.RPush(s.Ctx, key, b).Err()
+}

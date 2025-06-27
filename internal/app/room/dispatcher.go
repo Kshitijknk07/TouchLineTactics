@@ -3,6 +3,7 @@ package room
 import (
 	"encoding/json"
 
+	"github.com/yourusername/TouchlineTactics/internal/app/auction"
 	"github.com/yourusername/TouchlineTactics/internal/domain"
 )
 
@@ -75,6 +76,20 @@ func (d *EventDispatcher) Dispatch(client ClientConn, message []byte) {
 		var payload KickUserPayload
 		if err := json.Unmarshal(event.Payload, &payload); err == nil {
 			d.Handler.HandleKickUser(client, payload)
+		}
+	case "startAuction":
+		var payload auction.StartAuctionPayload
+		if err := json.Unmarshal(event.Payload, &payload); err == nil {
+			if d.Handler.AuctionHandler != nil {
+				d.Handler.AuctionHandler.HandleStartAuction(payload)
+			}
+		}
+	case "placeBid":
+		var payload auction.PlaceBidPayload
+		if err := json.Unmarshal(event.Payload, &payload); err == nil {
+			if d.Handler.AuctionHandler != nil {
+				d.Handler.AuctionHandler.HandlePlaceBid(payload)
+			}
 		}
 		// Add more cases for other events
 	}

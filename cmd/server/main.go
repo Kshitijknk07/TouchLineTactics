@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/yourusername/TouchlineTactics/internal/app/auction"
 	"github.com/yourusername/TouchlineTactics/internal/app/room"
 	apphttp "github.com/yourusername/TouchlineTactics/internal/http"
 	"github.com/yourusername/TouchlineTactics/internal/storage"
@@ -80,6 +81,15 @@ func main() {
 
 	// Register clients to roomClients map on connect
 	apphttp.SetupRoutes(app, hub, dispatcher)
+
+	// Adapt broadcast to match auction.NewAuctionService signature
+	auctionBroadcast := func(roomID string, eventType interface{}, data interface{}) {
+		broadcast(roomID, eventType.(room.EventType), data)
+	}
+
+	auctionService := auction.NewAuctionService(auctionBroadcast, redisStore)
+	auctionHandler := &auction.AuctionEventHandler{Auction: auctionService}
+	handler.AuctionHandler = auctionHandler
 
 	app.Listen(":8080")
 }
