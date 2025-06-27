@@ -35,6 +35,24 @@ func main() {
 	var roomClients = make(map[string]map[string]*ws.Client)
 	var mu sync.RWMutex
 
+	// Helper: add client to room
+	addClientToRoom := func(roomID, userID string, client *ws.Client) {
+		mu.Lock()
+		defer mu.Unlock()
+		if roomClients[roomID] == nil {
+			roomClients[roomID] = make(map[string]*ws.Client)
+		}
+		roomClients[roomID][userID] = client
+	}
+	// Helper: remove client from all rooms
+	removeClientFromAllRooms := func(userID string) {
+		mu.Lock()
+		defer mu.Unlock()
+		for _, clients := range roomClients {
+			delete(clients, userID)
+		}
+	}
+
 	// Broadcast function
 	broadcast := func(roomID string, eventType room.EventType, data interface{}) {
 		msg, _ := json.Marshal(map[string]interface{}{
@@ -61,6 +79,16 @@ func main() {
 		Broadcast:   broadcast,
 	}
 	dispatcher := room.NewEventDispatcher(handler)
+
+	// --- WebSocket registration logic ---
+	// Patch the WebSocket handler to update roomClients on join/leave
+	app.Get("/ws", func(c *fiber.Ctx) error {
+		userID := c.Query("userId")
+		if userID == "" {
+			return c.Status(400).SendString("Missing userId")
+		}
+		return ws.WebSocketHandlerWithRoomTracking(hub, dispatcher, userID, addClientToRoom, removeClientFromAllRooms)(c)
+	})
 
 	// Subscribe to Redis pub/sub for distributed events
 	if useRedis {
